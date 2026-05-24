@@ -312,3 +312,4 @@ app.listen(PORT, () => {
   console.log(`Transit API proxy running on port ${PORT}`);
   console.log(`BODS API Key configured: ${BODS_API_KEY ? 'Yes' : 'No'}`);
 });
+module.exports = app;
