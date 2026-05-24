@@ -304,18 +304,14 @@ app.get('/api/student-accommodation', async (req, res) => {
 
 // ── Health check ─────────────────────────────────────────────
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok' });
 });
 
+// Start server LAST
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Transit API proxy running on port ${PORT}`);
   console.log(`BODS API Key configured: ${BODS_API_KEY ? 'Yes' : 'No'}`);
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
 });
 
 module.exports = app;
