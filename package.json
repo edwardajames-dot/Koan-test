@@ -1,0 +1,19 @@
+{
+  "name": "warwick-transit-backend",
+  "version": "1.0.0",
+  "description": "Backend proxy for transit APIs (BODS, Lime, Darwin, TfWM)",
+  "main": "backend.js",
+  "scripts": {
+    "start": "node backend.js",
+    "dev": "nodemon backend.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "node-fetch": "^2.6.11",
+    "cheerio": "^1.0.0-rc.12"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
