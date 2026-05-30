@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Koan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+  @import url('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #FFFFFF;
+    font-family: 'DM Sans', sans-serif;
+    color: #003366;
+  }
+  button:focus { outline: none; }
+  .card {
+    background: #F8F9FA;
+    border: 1px solid #E8EBF0;
+    border-radius: 16px;
+    padding: 24px;
+    margin: 1rem 0;
+  }
+  .status-item { font-size: 12px; color: #666666; margin: 8px 0; display: flex; align-items: center; gap: 8px; }
+  .status-badge { width: 6px; height: 6px; border-radius: 50%; }
+  .status-badge.success { background: #22c55e; }
+  .status-badge.loading { background: #f59e0b; animation: pulse 1s infinite; }
+  .status-badge.error { background: #ef4444; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .toggle { width: 48px; height: 26px; border-radius: 999px; background: #E8EBF0; border: none; cursor: pointer; position: relative; transition: background 0.2s; }
+  .toggle.active { background: #9333EA; }
+  .toggle-slider { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 999px; background: #fff; transition: left 0.2s; }
+  .toggle.active .toggle-slider { left: 25px; }
+  .option-card { background: #FFFFFF; border: 1px solid #E8EBF0; border-radius: 14px; padding: 16px 20px; margin: 0.5rem 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; transition: all 0.2s; }
+  .option-card.best { background: linear-gradient(135deg, rgba(147,51,234,0.08) 0%, rgba(99,102,241,0.08) 100%); border: 1.5px solid rgba(147,51,234,0.3); }
+  .header { margin-bottom: 28px; }
+  .header h1 { font-size: 28px; font-weight: 700; line-height: 1.2; margin: 0; color: #003366; }
+  .header .label { font-size: 11px; font-family: 'Space Mono', monospace; color: #003366; letter-spacing: 2px; margin-bottom: 6px; font-weight: 700; }
+  .header .accent { color: #9333EA; }
+  .header .tagline { font-size: 14px; color: #666666; font-weight: 500; margin-top: 4px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+  .tab { flex: 1; padding: 10px 8px; border-radius: 12px; border: 1px solid #E8EBF0; background: #FFFFFF; color: #999999; font-size: 11px; font-weight: 400; cursor: pointer; transition: all 0.15s; min-width: 0; overflow-wrap: break-word; word-break: break-word; }
+  .tab.active { border: 1.5px solid #9333EA; background: rgba(147,51,234,0.08); color: #003366; font-weight: 600; }
+  .tab-emoji { font-size: 20px; margin-bottom: 4px; }
+  .insight { margin-top: 16px; padding: 12px 16px; background: rgba(147,51,234,0.08); border-radius: 10px; font-size: 13px; color: #6B21A8; border-left: 3px solid #9333EA; }
+  .data-sources { font-size: 12px; line-height: 1.6; color: #666666; }
+  .data-sources p { margin: 8px 0; }
+  .config-note { font-size: 11px; padding: 8px 12px; background: rgba(147,51,234,0.08); border-radius: 6px; color: #6B21A8; margin-top: 8px; }
+  input[type="checkbox"] { accent-color: #9333EA; }
+  input[type="number"] { border: 1px solid #E8EBF0; background: #FFFFFF; color: #003366; }
+  #map { width: 100%; height: 400px; border-radius: 12px; border: 1px solid #E8EBF0; margin-bottom: 20px; }
+  .accom-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .accom-card { background: #FFFFFF; border: 1px solid #E8EBF0; border-radius: 12px; padding: 16px; transition: all 0.2s; }
+  .accom-card:hover { border-color: #9333EA; box-shadow: 0 4px 12px rgba(147,51,234,0.1); }
+  .accom-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; }
+  .accom-name { font-size: 15px; font-weight: 600; color: #003366; }
+  .accom-price { font-size: 16px; font-weight: 700; color: #9333EA; }
+  .accom-info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; }
+  .accom-info-item { display: flex; flex-direction: column; gap: 4px; }
+  .accom-info-label { color: #999999; font-size: 11px; }
+  .accom-info-value { color: #003366; font-weight: 600; }
+  .value-score { display: inline-block; padding: 4px 8px; background: linear-gradient(135deg, rgba(147,51,234,0.1), rgba(99,102,241,0.1)); border-radius: 6px; font-weight: 600; color: #9333EA; font-size: 12px; }
+  .route-badge { display: inline-block; padding: 2px 6px; background: #F0F4F8; border-radius: 4px; font-size: 11px; color: #666666; margin-right: 6px; }
+  .toggle::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); min-width: 44px; min-height: 44px; }
+  #groupSize, #budget-filter, #commute-filter, #journey-day, #journey-time, #search-route { min-height: 44px; }
+
+</style>
+</head>
+<body>
+<div style="padding: 24px 20px 48px; max-width: 720px; margin: 0 auto;">
+  <div class="header">
+    <div class="label">🚀 COMMUTE APP</div>
+    <h1>Koan<span class="accent"></span></h1>
+    <div class="tagline">Affordable, Reliable & Safe Student Travel</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-route="morning"><div class="tab-emoji">☀️</div>Morning</button>
+    <button class="tab" data-route="nightout"><div class="tab-emoji">🌙</div>Night Out</button>
+    <button class="tab" data-route="latenight"><div class="tab-emoji">🌃</div>Late Night</button>
+    <button class="tab" data-route="planner"><div class="tab-emoji">🗺️</div>Route Planner</button>
+    <button class="tab" data-route="map"><div class="tab-emoji">🏠</div>Live Map</button>
+  </div>
+
+  <div class="card">
+    <div style="font-size: 14px; margin-bottom: 12px; color: #003366; font-weight: 600;">💳 Wallet & Preferences</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #003366;">
+        <input type="checkbox" id="busPass" style="cursor: pointer;"> Bus Pass
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #003366;">
+        <input type="checkbox" id="unirider" style="cursor: pointer;"> UniRider
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #003366;">
+        <input type="checkbox" id="railcard" style="cursor: pointer;"> Railcard
+      </label>
+    </div>
+    <div style="margin-top: 12px; display: flex; align-items: center; gap: 12px;">
+      <label style="font-size: 13px; color: #003366;">Group size:</label>
+      <input type="number" id="groupSize" min="1" max="8" value="1" style="width: 50px; padding: 6px; border-radius: 6px; border: 1px solid #E8EBF0; background: #FFFFFF; color: #003366;">
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+      <div style="width: 24px; height: 24px; background: rgba(147,51,234,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">🛡️</div>
+      <div>
+        <div style="font-size: 14px; font-weight: 600; color: #003366;">Safe Return Mode</div>
+        <div style="font-size: 12px; color: #999999;">Hides cycling after dark</div>
+      </div>
+      <button id="safeMode" class="toggle" style="margin-left: auto;">
+        <div class="toggle-slider"></div>
+      </button>
+    </div>
+  </div>
+
+
+
+  <div class="card">
+    <div id="route-content">
+      <div style="font-size: 14px; margin-bottom: 12px; color: #003366; font-weight: 600;" id="route-title">☀️ Morning Commute</div>
+      <div id="route-from" style="font-size: 12px; color: #999999; margin-bottom: 8px;"></div>
+      <div id="options-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+      <div class="insight">
+        <strong>💡 Insight:</strong> <span id="insight-text">Loading transit options...</span>
+      </div>
+    </div>
+    
+    <div id="map-content" style="display: none;">
+      <div style="font-size: 14px; margin-bottom: 12px; color: #003366; font-weight: 600;">🏠 Student Accommodation Near UoW</div>
+      <div style="font-size: 12px; color: #999999; margin-bottom: 16px;">Live accommodation options ranked by value (price + commute cost)</div>
+      
+      <div id="map"></div>
+      
+      <div style="margin-bottom: 16px; display: flex; gap: 8px;">
+        <select id="budget-filter" style="flex: 1; padding: 8px; border: 1px solid #E8EBF0; border-radius: 6px; background: #FFFFFF; color: #003366; font-size: 12px;">
+          <option value="">All budgets</option>
+          <option value="300">Up to £300</option>
+          <option value="400">Up to £400</option>
+          <option value="500">Up to £500</option>
+          <option value="600">Any</option>
+        </select>
+        <select id="commute-filter" style="flex: 1; padding: 8px; border: 1px solid #E8EBF0; border-radius: 6px; background: #FFFFFF; color: #003366; font-size: 12px;">
+          <option value="">Any commute</option>
+          <option value="20">Under 20 min</option>
+          <option value="30">Under 30 min</option>
+          <option value="45">Under 45 min</option>
+        </select>
+      </div>
+      
+      <div class="accom-grid" id="accom-list"></div>
+      
+      <div class="insight" style="margin-top: 16px;">
+        <strong>💡 Tip:</strong> <span>Value score = price rank + commute cost rank. Lower is better!</span>
+      </div>
+    </div>
+    
+    <div id="planner-content" style="display: none;">
+      <div style="font-size: 14px; margin-bottom: 12px; color: #003366; font-weight: 600;">🗺️ Route Planner</div>
+      <div style="font-size: 12px; color: #999999; margin-bottom: 16px;">Find the best journey between two points in Coventry & Warwickshire</div>
+      
+      <div style="background: #F8F9FA; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+        <div style="margin-bottom: 12px; position: relative;">
+          <label style="font-size: 12px; color: #003366; font-weight: 600; display: block; margin-bottom: 6px;">📍 From (location or postcode)</label>
+          <input type="text" id="from-location" placeholder="e.g., Coventry City Centre or CV1" style="width: 100%; padding: 10px; border: 1px solid #E8EBF0; border-radius: 6px; background: #FFFFFF; color: #003366; font-size: 13px;">
+          <div id="from-suggestions" style="display: none; position: absolute; background: #FFFFFF; border: 1px solid #E8EBF0; border-radius: 6px; max-height: 150px; overflow-y: auto; width: calc(100% - 32px); margin-top: 2px; z-index: 10;"></div>
+        </div>
+        
+        <div style="margin-bottom: 12px; position: relative;">
+          <label style="font-size: 12px; color: #003366; font-weight: 600; display: block; margin-bottom: 6px;">📍 To (location or postcode)</label>
+          <input type="text" id="to-location" placeholder="e.g., University of Warwick or CV4" style="width: 100%; padding: 10px; border: 1px solid #E8EBF0; border-radius: 6px; background: #FFFFFF; color: #003366; font-size: 13px;">
+          <div id="to-suggestions" style="display: none; position: absolute; background: #FFFFFF; border: 1px solid #E8EBF0; border-radius: 6px; max-height: 150px; overflow-y: auto; width: calc(100% - 32px); margin-top: 2px; z-index: 10;"></div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 12px; color: #003366; font-weight: 600; display: block; margin-bottom: 6px;">📅 Day</label>
+            <select id="journey-day" style="width: 100%; padding: 10px; border: 1px solid #E8EBF0; border-radius: 6px; background: #FFFFFF; color: #003366; font-size: 13px;">
+              <option value="0">Sunday</option>
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+            </select>
+          </div>
+          
+          <div>
+            <label style="font-size: 12px; color: #003366; font-weight: 600; display: block; margin-bottom: 6px;">🕐 Time</label>
+            <input type="time" id="journey-time" style="width: 100%; padding: 10px; border: 1px solid #E8EBF0; border-radius: 6px; background: #FFFFFF; color: #003366; font-size: 13px;" value="09:00">
+          </div>
+        </div>
+        
+        <button id="search-route" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #9333EA, #6B21A8); color: #FFFFFF; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">Search Routes</button>
+      </div>
+      
+      <div id="planner-results"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 20px;">
+    <h2 style="font-size: 14px; margin-bottom: 12px; color: #003366; font-weight: 600;">📊 Data Sources</h2>
+    <div class="data-sources">
+      <p><strong>🚴 Lime GBFS:</strong> Live bike/scooter availability (via proxy)</p>
+      <p><strong>🚌 BODS API:</strong> Bus Open Data Service — UK national bus routes</p>
+      <p><strong>🚆 Darwin API:</strong> National Rail Enquiries train departures</p>
+      <p><strong>🚌 TfWM GTFS:</strong> Transport for West Midlands schedules</p>
+    </div>
+  </div>
+
+  <div class="card" id="status-card">
+    <div style="font-size: 14px; margin-bottom: 12px; color: #003366; font-weight: 600;">📡 Data Status</div>
+    <div id="status-list" style="display: flex; flex-direction: column; gap: 4px;">
+      <div class="status-item">
+        <div class="status-badge loading"></div>
+        <span id="lime-status">Lime GBFS: Loading...</span>
+      </div>
+      <div class="status-item">
+        <div class="status-badge loading"></div>
+        <span id="bods-status">BODS (Bus Routes): Loading...</span>
+      </div>
+      <div class="status-item">
+        <div class="status-badge loading"></div>
+        <span id="darwin-status">Darwin (Trains): Loading...</span>
+      </div>
+      <div class="status-item">
+        <div class="status-badge loading"></div>
+        <span id="tfwm-status">TfWM (West Midlands): Loading...</span>
+      </div>
+    </div>
+    <div class="config-note">
+      Backend: <span id="backend-url">http://localhost:3000</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+  // ── Configuration ───────────────────────────────────────────────
+  // Hardcoded to localhost:3000 for local development
+  const BACKEND_URL = 'http://localhost:3000';
+
+  // ── API Proxy Fetchers ──────────────────────────────────────────
+  
+  async function fetchLimeData() {
+    try {
+      const resp = await fetch(`${BACKEND_URL}/api/lime-gbfs`);
+      const data = await resp.json();
+      if (data.status === 'success' || data.status === 'fallback') {
+        updateStatus('lime-status', `Lime GBFS: Live ${data.status === 'fallback' ? '(mock)' : ''} ✓`);
+        return data.data;
+      }
+      throw new Error(data.message);
+    } catch (e) {
+      console.error('Lime fetch failed:', e);
+      updateStatus('lime-status', `Lime GBFS: Offline (${e.message})`);
+      return null;
+    }
+  }
+
+  async function fetchBodsData() {
+    try {
+      const resp = await fetch(`${BACKEND_URL}/api/bods-routes`);
+      const data = await resp.json();
+      if (data.status === 'success' || data.status === 'fallback') {
+        updateStatus('bods-status', `BODS: ${data.count} routes ${data.status === 'fallback' ? '(mock)' : ''} ✓`);
+        return data.data;
+      }
+      throw new Error(data.message);
+    } catch (e) {
+      console.error('BODS fetch failed:', e);
+      updateStatus('bods-status', `BODS: Offline (${e.message})`);
+      return null;
+    }
+  }
+
+  async function fetchDarwinData() {
+    try {
+      const resp = await fetch(`${BACKEND_URL}/api/darwin-trains`);
+      const data = await resp.json();
+      if (data.status === 'success' || data.status === 'fallback') {
+        updateStatus('darwin-status', `Darwin: Train services ${data.status === 'fallback' ? '(mock)' : ''} ✓`);
+        return data.data;
+      }
+      throw new Error(data.message);
+    } catch (e) {
+      console.error('Darwin fetch failed:', e);
+      updateStatus('darwin-status', `Darwin: Offline (${e.message})`);
+      return null;
+    }
+  }
+
+  async function fetchTfwmData() {
+    try {
+      const resp = await fetch(`${BACKEND_URL}/api/tfwm-gtfs`);
+      const data = await resp.json();
+      if (data.status === 'success' || data.status === 'fallback') {
+        updateStatus('tfwm-status', `TfWM: GTFS available ${data.status === 'fallback' ? '(mock)' : ''} ✓`);
+        return data;
+      }
+      throw new Error(data.message);
+    } catch (e) {
+      console.error('TfWM fetch failed:', e);
+      updateStatus('tfwm-status', `TfWM: Offline (${e.message})`);
+      return null;
+    }
+  }
+
+  // Update status display
+  function updateStatus(id, text) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.textContent = text;
+      const badge = el.parentElement.querySelector('.status-badge');
+      if (text.includes('✓')) {
+        badge.classList.remove('loading');
+        badge.classList.add('success');
+      } else {
+        badge.classList.remove('loading');
+        badge.classList.add('error');
+      }
+    }
+  }
+
+  // ── Route Data ──────────────────────────────────────────────────
+  const ROUTES = {
+    morning: {
+      title: "☀️ Morning Commute",
+      from: "Earlsdon (Albany Village) → Oculus Building, Warwick",
+      time: "09:00",
+      options: [
+        { id: "bus_12x", name: "NX 12X", cost: 2.4, time: 35, notes: "Direct via Kenilworth Rd (BODS)", service: "bus" },
+        { id: "bus_u1", name: "Stagecoach U1", cost: 2.5, time: 45, notes: "Campus route (TfWM)", service: "bus" },
+        { id: "lime", name: "Lime e-Bike", cost: 4.8, time: 22, notes: "Live availability (Lime)", service: "lime" },
+        { id: "uber_solo", name: "Uber", cost: 8.5, time: 12, notes: "Door-to-door", service: "uber" },
+        { id: "walk", name: "Walking", cost: 0, time: 75, notes: "75 min walk", service: "walk" }
+      ]
+    },
+    nightout: {
+      title: "🌙 Pre-Night Out",
+      from: "UoW Library → Benjamin Satchwell, Leamington Spa",
+      time: "20:00",
+      options: [
+        { id: "bus_u1", name: "Stagecoach U1", cost: 2.5, time: 35, notes: "To campus bus station", service: "bus" },
+        { id: "train", name: "Train (Coventry→Leamington)", cost: 5, time: 15, notes: "West Midlands Railway (Darwin)", service: "train" },
+        { id: "uber_nightout", name: "Uber (split)", cost: 6.75, time: 25, notes: "2-way split = £6.75/pp", service: "uber" }
+      ]
+    },
+    latenight: {
+      title: "🌃 Late Night Return",
+      from: "Leamington Spa → UoW Campus",
+      time: "03:00",
+      options: [
+        { id: "uber_late", name: "Uber (split)", cost: 12.5, time: 28, notes: "2-way = £12.50/pp, pre-book!", service: "uber" },
+        { id: "taxi", name: "Taxi", cost: 15, time: 30, notes: "Local minicab", service: "taxi" }
+      ]
+    }
+  };
+
+  let state = {
+    activeRoute: "morning",
+    safeMode: false,
+    groupSize: 1,
+    wallet: { busPass: false, unirider: false, railcard: false },
+    apiData: { lime: null, bods: null, darwin: null, tfwm: null }
+  };
+
+  function render() {
+    const route = ROUTES[state.activeRoute];
+    const container = document.getElementById("options-container");
+    const titleEl = document.getElementById("route-title");
+    const fromEl = document.getElementById("route-from");
+    
+    titleEl.textContent = route.title;
+    fromEl.textContent = `📍 ${route.from} · ${route.time}`;
+    
+    let filtered = route.options;
+    if (state.safeMode) {
+      // Only filter Lime if it's night time (after 22:00 or before 6:00)
+      const hour = parseInt(route.time.split(':')[0]);
+      const isNight = hour >= 22 || hour < 6;
+      if (isNight) {
+        filtered = filtered.filter(o => o.id !== "lime");
+      }
+    }
+    
+    container.innerHTML = filtered.map(opt => {
+      let cost = opt.cost;
+      if (opt.id === "bus_12x" && state.wallet.busPass) cost = 0;
+      if (opt.id === "bus_u1" && state.wallet.unirider) cost = 1;
+      if (opt.id === "train" && state.wallet.railcard) cost = cost * 0.7;
+      if (opt.id === "uber_nightout" || opt.id === "uber_late") cost = cost / state.groupSize;
+      
+      // Get departure/arrival times
+      const [routeHour, routeMin] = route.time.split(':').map(Number);
+      const serviceType = opt.service || 'bus'; // Use service from route option
+      const departure = getNextDeparture(serviceType, routeHour, routeMin);
+      const arrival = departure ? getArrivalTime(departure.hour, departure.min, opt.time, departure.variance) : null;
+      
+      return `
+        <div class="option-card">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 13px; font-weight: 600; color: #003366;">${opt.name}</div>
+            <div style="font-size: 11px; color: #999999; margin-top: 4px;">${opt.notes} · ${opt.time} min</div>
+            ${arrival ? `
+              <div style="font-size: 12px; color: #003366; margin-top: 6px; font-weight: 500;">
+                🚌 Departs: <strong>${formatTime(departure.hour, departure.min)}</strong> → Arrives: <strong>${arrival.display}</strong>
+              </div>
+            ` : ''}
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 14px; font-weight: 700; color: #16A34A;">£${cost.toFixed(2)}</div>
+            <div style="font-size: 10px; color: #999999; margin-top: 2px;">per person</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+    
+    document.getElementById("insight-text").textContent = 
+      state.activeRoute === "morning" ? "12X (BODS) is free with Bus Pass. Lime stock live." :
+      state.activeRoute === "nightout" ? "Train via Darwin real-time. Split costs with group." :
+      "Late night: rideshare only. Pre-book.";
+  }
+
+  // ── Accommodation Data (Mock) ──────────────────────────────
+  let ACCOMMODATIONS = [
+    { id: 1, name: "Earlsdon Student Hub", price: 400, lat: 52.3888, lng: -1.5067, area: "Earlsdon, Coventry", beds: 120, distance: 2.1, bestRoute: "12X", routeCost: 2.4, routeTime: 35, reliability: 95, provider: "Mezzino" },
+    { id: 2, name: "Canley Campus View", price: 350, lat: 52.3705, lng: -1.5234, area: "Canley, Coventry", beds: 85, distance: 1.8, bestRoute: "14", routeCost: 2.4, routeTime: 40, reliability: 90, provider: "IQ Student" },
+    { id: 3, name: "Tile Hill Living", price: 380, lat: 52.3950, lng: -1.4850, area: "Tile Hill, Coventry", beds: 60, distance: 2.5, bestRoute: "14", routeCost: 2.4, routeTime: 38, reliability: 92, provider: "Vita Student" },
+    { id: 4, name: "Leamington Town Flats", price: 450, lat: 52.2876, lng: -1.5342, area: "Leamington Spa", beds: 45, distance: 8.5, bestRoute: "Train", routeCost: 5.0, routeTime: 15, reliability: 88, provider: "IQ Student" },
+    { id: 5, name: "Warwick Student Rooms", price: 480, lat: 52.2811, lng: -1.5860, area: "Warwick Town", beds: 38, distance: 4.2, bestRoute: "U2", routeCost: 2.5, routeTime: 25, reliability: 89, provider: "Mezzino" },
+    { id: 6, name: "Kenilworth Gate", price: 420, lat: 52.3416, lng: -1.5755, area: "Kenilworth", beds: 52, distance: 3.8, bestRoute: "U2", routeCost: 2.5, routeTime: 28, reliability: 91, provider: "IQ Student" },
+    { id: 7, name: "Wyken Warehouse Lofts", price: 330, lat: 52.3800, lng: -1.4550, area: "Wyken, Coventry", beds: 40, distance: 3.2, bestRoute: "U1", routeCost: 2.5, routeTime: 30, reliability: 85, provider: "Vita Student" },
+    { id: 8, name: "Foleshill Budget Stay", price: 310, lat: 52.4050, lng: -1.5000, area: "Foleshill, Coventry", beds: 55, distance: 3.5, bestRoute: "12X", routeCost: 2.4, routeTime: 32, reliability: 87, provider: "Mezzino" },
+    { id: 9, name: "Whitley Park Residence", price: 360, lat: 52.3650, lng: -1.4700, area: "Whitley, Coventry", beds: 48, distance: 2.8, bestRoute: "11", routeCost: 2.4, routeTime: 36, reliability: 93, provider: "IQ Student" },
+    { id: 10, name: "Styvechale Station View", price: 420, lat: 52.3565, lng: -1.5500, area: "Styvechale, Coventry", beds: 62, distance: 2.3, bestRoute: "60", routeCost: 2.4, routeTime: 33, reliability: 88, provider: "Vita Student" }
+  ];
+
+  // Calculate value scores
+  ACCOMMODATIONS.forEach(acc => {
+    acc.monthlyCommuteCost = acc.routeCost * 22;
+    acc.valueScore = (acc.price / 100) + (acc.routeCost / 0.1);
+  });
+
+  // ── Location Database for A→B routing ────────────────────
+  const LOCATIONS = [
+    { id: 'uow', name: 'University of Warwick', lat: 52.3794, lng: -1.5606, area: 'Warwick', postcodes: ['CV4'] },
+    { id: 'coventry-train', name: 'Coventry Train Station', lat: 52.4088, lng: -1.5141, area: 'Coventry', postcodes: ['CV1'] },
+    { id: 'leamington-train', name: 'Leamington Spa Train Station', lat: 52.2887, lng: -1.5365, area: 'Leamington Spa', postcodes: ['CV31'] },
+    { id: 'coventry-city', name: 'Coventry City Centre', lat: 52.4083, lng: -1.5125, area: 'Coventry', postcodes: ['CV1', 'CV2'] },
+    { id: 'leamington-town', name: 'Leamington Spa Town Centre', lat: 52.2876, lng: -1.5342, area: 'Leamington Spa', postcodes: ['CV31', 'CV32'] },
+    { id: 'warwick-town', name: 'Warwick Town Centre', lat: 52.2811, lng: -1.5860, area: 'Warwick', postcodes: ['CV34'] },
+    { id: 'kenilworth', name: 'Kenilworth Town Centre', lat: 52.3416, lng: -1.5755, area: 'Kenilworth', postcodes: ['CV8'] },
+    { id: 'earlsdon', name: 'Earlsdon, Coventry', lat: 52.3888, lng: -1.5067, area: 'Coventry', postcodes: ['CV5'] },
+    { id: 'tile-hill', name: 'Tile Hill, Coventry', lat: 52.3950, lng: -1.4850, area: 'Coventry', postcodes: ['CV4'] },
+    { id: 'canley', name: 'Canley, Coventry', lat: 52.3705, lng: -1.5234, area: 'Coventry', postcodes: ['CV4'] },
+    { id: 'wyken', name: 'Wyken, Coventry', lat: 52.3800, lng: -1.4550, area: 'Coventry', postcodes: ['CV2'] },
+    { id: 'foleshill', name: 'Foleshill, Coventry', lat: 52.4050, lng: -1.5000, area: 'Coventry', postcodes: ['CV6'] }
+  ];
+
+  // Lime service area (Coventry + UoW campus)
+  const LIME_SERVICE_POSTCODES = ['CV1', 'CV2', 'CV3', 'CV4', 'CV5', 'CV6'];
+  
+  function isLimeAvailable(location) {
+    return location.postcodes.some(pc => LIME_SERVICE_POSTCODES.includes(pc));
+  }
+
+  // Calculate next departure time based on service type and current time
+  function getNextDeparture(service, currentHour, currentMin) {
+    const DEPARTURE_INTERVALS = {
+      'bus': { frequency: 10, variance: 2 },        // Every ~10min ±2min
+      '11': { frequency: 12, variance: 2 },         // Route 11 every ~12min
+      'train': { frequency: 30, variance: 3 },      // Trains every ~30min ±3min
+      'lime': { immediate: true, variance: 0 },     // Immediate (at location)
+      'uber': { immediate: true, variance: 2 },     // Immediate ±2min
+      'taxi': { immediate: true, variance: 2 }      // Immediate ±2min
+    };
+
+    const interval = DEPARTURE_INTERVALS[service];
+    if (!interval) return null;
+
+    if (interval.immediate) {
+      // Immediate services depart in 2-3 minutes
+      const departMins = currentMin + 2 + Math.floor(Math.random() * 2);
+      return {
+        hour: currentHour,
+        min: departMins < 60 ? departMins : departMins - 60,
+        variance: interval.variance
+      };
+    } else {
+      // Scheduled services (bus/train)
+      const nextDepartMin = Math.ceil(currentMin / interval.frequency) * interval.frequency;
+      if (nextDepartMin < 60) {
+        return {
+          hour: currentHour,
+          min: nextDepartMin,
+          variance: interval.variance
+        };
+      } else {
+        return {
+          hour: (currentHour + 1) % 24,
+          min: nextDepartMin - 60,
+          variance: interval.variance
+        };
+      }
+    }
+  }
+
+  // Format time as HH:MM
+  function formatTime(hour, min) {
+    return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  }
+
+  // Calculate arrival time with uncertainty range
+  function getArrivalTime(departHour, departMin, journeyMins, uncertainty) {
+    let totalMins = departMin + journeyMins;
+    let arrivalHour = departHour + Math.floor(totalMins / 60);
+    let arrivalMin = totalMins % 60;
+
+    const earliestMin = Math.max(0, arrivalMin - uncertainty);
+    const earliestHour = arrivalHour - (earliestMin < arrivalMin - uncertainty ? 1 : 0);
+
+    const latestMin = (arrivalMin + uncertainty) % 60;
+    const latestHour = arrivalHour + Math.floor((arrivalMin + uncertainty) / 60);
+
+    arrivalHour = arrivalHour % 24;
+
+    if (uncertainty === 0) {
+      return {
+        display: formatTime(arrivalHour, arrivalMin),
+        isRange: false
+      };
+    } else {
+      return {
+        display: `${formatTime(earliestHour % 24, earliestMin)}-${formatTime(latestHour % 24, latestMin)}`,
+        isRange: true
+      };
+    }
+  }
+
+  // Get current time (in Route Planner: from user input, in tabs: actual time)
+  function getCurrentTime() {
+    const now = new Date();
+    return {
+      hour: now.getHours(),
+      min: now.getMinutes()
+    };
+  }
+    // distance is in km (approx from lat/lng difference * 111)
+    
+    switch(mode) {
+      case 'bus':
+        // Average bus speed: 15 mph = 24 km/h in urban areas
+        // Plus 5 min wait + 5 min walking to/from stops
+        return Math.round((distance / 24) * 60) + 10;
+      case 'train':
+        // Average train speed: 50 mph = 80 km/h
+        // Plus 10 min wait + 5 min walking
+        return Math.round((distance / 80) * 60) + 15;
+      case 'lime':
+        // Cycling: 12 mph = 19 km/h
+        // Plus 2 min to find/unlock bike
+        return Math.round((distance / 19) * 60) + 2;
+      case 'uber':
+        // Uber/Taxi: 25 mph = 40 km/h in traffic
+        // Plus 2 min wait
+        return Math.round((distance / 40) * 60) + 2;
+      case 'taxi':
+        // Taxi: similar to Uber
+        return Math.round((distance / 40) * 60) + 2;
+      case 'night-bus':
+        // Night buses slower: 20 km/h + 10 min wait
+        return Math.round((distance / 20) * 60) + 10;
+      default:
+        return 30;
+    }
+  }
+
+  // Calculate distance in km from lat/lng
+  function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  // ── Service Hours (availability by time & day) ──────────────
+  const SERVICE_HOURS = {
+    'bus': {
+      weekday: { start: 5, end: 23 }, // 5am-11pm
+      weekend: { start: 6, end: 23 }  // 6am-11pm
+    },
+    'train': {
+      weekday: { start: 5, end: 23 },
+      weekend: { start: 6, end: 23 }
+    },
+    'lime': {
+      weekday: { start: 7, end: 18 }, // Daylight hours roughly
+      weekend: { start: 7, end: 18 }
+    },
+    'night-bus': {
+      weekday: { start: 23, end: 5 },  // 11pm-5am (next day)
+      weekend: { start: 23, end: 5 }
+    },
+    'uber': {
+      weekday: { start: 0, end: 24 },  // 24/7
+      weekend: { start: 0, end: 24 }
+    },
+    'taxi': {
+      weekday: { start: 0, end: 24 },  // 24/7
+      weekend: { start: 0, end: 24 }
+    }
+  };
+
+  function isServiceAvailable(service, hour, day) {
+    const dayType = (day === 0 || day === 6) ? 'weekend' : 'weekday'; // 0=Sun, 6=Sat
+    const hours = SERVICE_HOURS[service]?.[dayType];
+    
+    if (!hours) return false;
+    
+    if (hours.start <= hours.end) {
+      return hour >= hours.start && hour < hours.end;
+    } else {
+      // Night service (spans midnight)
+      return hour >= hours.start || hour < hours.end;
+    }
+  }
+
+  function getAvailableRoutes(time, day) {
+    const hour = parseInt(time.split(':')[0]);
+    const routes = [];
+    
+    if (isServiceAvailable('bus', hour, day)) {
+      routes.push('Bus');
+    }
+    if (isServiceAvailable('train', hour, day)) {
+      routes.push('Train');
+    }
+    if (isServiceAvailable('lime', hour, day)) {
+      routes.push('Lime Bike');
+    }
+    if (isServiceAvailable('night-bus', hour, day)) {
+      routes.push('Night Bus');
+    }
+    routes.push('Uber');  // Always available
+    routes.push('Taxi');  // Always available
+    
+    return routes;
+  }
+
+  // ── Route Database (A→B options using Koan data) ──────────
+  const ROUTES_DB = {
+    'coventry-city|uow': [
+      { route: '12X', cost: 2.4, time: 35, reliability: 95, notes: 'Direct, frequent', service: 'bus' },
+      { route: 'Lime Bike', cost: 4.8, time: 22, reliability: 90, notes: 'Fast cycle route', service: 'lime' },
+      { route: 'Uber', cost: 8.5, time: 12, reliability: 92, notes: 'Door-to-door', service: 'uber' }
+    ],
+    'earlsdon|uow': [
+      { route: '11', cost: 2.4, time: 18, reliability: 92, notes: 'Direct bus to campus', service: 'bus' },
+      { route: '12X', cost: 2.4, time: 22, reliability: 93, notes: 'Via city centre', service: 'bus' },
+      { route: 'Lime Bike', cost: 3.5, time: 12, reliability: 88, notes: 'Quick cycle', service: 'lime' },
+      { route: 'Uber', cost: 6.5, time: 8, reliability: 91, notes: 'Door-to-door', service: 'uber' }
+    ],
+    'leamington-town|uow': [
+      { route: 'Train + 11', cost: 7.4, time: 35, reliability: 89, notes: 'Train to Coventry, then bus 11', service: 'train' },
+      { route: 'U2 Direct', cost: 2.5, time: 45, reliability: 85, notes: 'Single bus route', service: 'bus' },
+      { route: 'Uber', cost: 12.0, time: 25, reliability: 91, notes: 'Direct', service: 'uber' }
+    ],
+    'warwick-town|uow': [
+      { route: 'U2', cost: 2.5, time: 25, reliability: 89, notes: 'Direct route', service: 'bus' },
+      { route: 'Bike', cost: 0, time: 35, reliability: 90, notes: 'Cycle via greenway', service: 'lime' },
+      { route: 'Uber', cost: 10.0, time: 15, reliability: 92, notes: 'Door-to-door', service: 'uber' }
+    ],
+    'kenilworth|uow': [
+      { route: '11', cost: 2.4, time: 28, reliability: 90, notes: 'Direct to campus via Coventry', service: 'bus' },
+      { route: 'U2', cost: 2.5, time: 30, reliability: 91, notes: 'Via Warwick', service: 'bus' },
+      { route: 'Lime Bike', cost: 0, time: 45, reliability: 85, notes: 'Scenic cycle', service: 'lime' },
+      { route: 'Uber', cost: 9.5, time: 18, reliability: 90, notes: 'Direct', service: 'uber' }
+    ]
+  };
+  
+  async function loadAccommodations() {
+    // Dummy load - instant return
+    return Promise.resolve();
+  }
+
+  let map = null;
+  let markers = [];
+
+  function initMap() {
+    if (map) return; // Already initialized
+    
+    // Center on Coventry
+    const center = [52.408, -1.510];
+    map = L.map('map').setView(center, 11);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map);
+    
+    // Add markers
+    ACCOMMODATIONS.forEach(acc => {
+      const marker = L.circleMarker([acc.lat, acc.lng], {
+        radius: 8,
+        fillColor: '#9333EA',
+        color: '#fff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.8
+      }).addTo(map);
+      
+      marker.bindPopup(`
+        <div style="font-size: 12px;">
+          <strong>${acc.name}</strong><br>
+          £${acc.price}/month<br>
+          ${acc.bestRoute} · £${acc.routeCost}
+        </div>
+      `);
+      
+      markers.push(marker);
+    });
+  }
+
+  function renderAccommodations() {
+    const sorted = [...ACCOMMODATIONS].sort((a, b) => a.valueScore - b.valueScore);
+    const container = document.getElementById('accom-list');
+    
+    container.innerHTML = sorted.map((acc, idx) => `
+      <div class="accom-card">
+        <div class="accom-header">
+          <div>
+            <div class="accom-name">${idx + 1}. ${acc.name}</div>
+            <div style="font-size: 11px; color: #999999; margin-top: 4px;">${acc.area}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="accom-price">£${acc.price}/mo</div>
+            <div class="value-score">Value: ${acc.valueScore.toFixed(1)}</div>
+          </div>
+        </div>
+        
+        <div class="accom-info">
+          <div class="accom-info-item">
+            <div class="accom-info-label">Best Route</div>
+            <div class="accom-info-value">
+              <span class="route-badge">${acc.bestRoute}</span>
+              £${acc.routeCost} · ${acc.routeTime}min
+            </div>
+          </div>
+          <div class="accom-info-item">
+            <div class="accom-info-label">Monthly Commute</div>
+            <div class="accom-info-value" style="color: #16A34A;">£${acc.monthlyCommuteCost.toFixed(0)}</div>
+          </div>
+          <div class="accom-info-item">
+            <div class="accom-info-label">Reliability</div>
+            <div class="accom-info-value">${acc.reliability}%</div>
+          </div>
+          <div class="accom-info-item">
+            <div class="accom-info-label">Available Beds</div>
+            <div class="accom-info-value">${acc.beds} rooms</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function filterAccommodations() {
+    const budget = parseInt(document.getElementById('budget-filter').value) || 999;
+    const commute = parseInt(document.getElementById('commute-filter').value) || 999;
+    
+    const filtered = ACCOMMODATIONS.filter(acc => 
+      acc.price <= budget && acc.routeTime <= commute
+    );
+    
+    const sorted = filtered.sort((a, b) => a.valueScore - b.valueScore);
+    const container = document.getElementById('accom-list');
+    
+    if (filtered.length === 0) {
+      container.innerHTML = '<div style="padding: 20px; text-align: center; color: #999999;">No accommodations match your filters</div>';
+      return;
+    }
+    
+    container.innerHTML = sorted.map((acc, idx) => `
+      <div class="accom-card">
+        <div class="accom-header">
+          <div>
+            <div class="accom-name">${acc.name}</div>
+            <div style="font-size: 11px; color: #999999; margin-top: 4px;">${acc.area}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="accom-price">£${acc.price}/mo</div>
+            <div class="value-score">Value: ${acc.valueScore.toFixed(1)}</div>
+          </div>
+        </div>
+        
+        <div class="accom-info">
+          <div class="accom-info-item">
+            <div class="accom-info-label">Best Route</div>
+            <div class="accom-info-value">
+              <span class="route-badge">${acc.bestRoute}</span>
+              £${acc.routeCost} · ${acc.routeTime}min
+            </div>
+          </div>
+          <div class="accom-info-item">
+            <div class="accom-info-label">Monthly Commute</div>
+            <div class="accom-info-value" style="color: #16A34A;">£${acc.monthlyCommuteCost.toFixed(0)}</div>
+          </div>
+          <div class="accom-info-item">
+            <div class="accom-info-label">Reliability</div>
+            <div class="accom-info-value">${acc.reliability}%</div>
+          </div>
+          <div class="accom-info-item">
+            <div class="accom-info-label">Available Beds</div>
+            <div class="accom-info-value">${acc.beds} rooms</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  let apiDataLoaded = false;
+
+  // Load APIs on-demand (lazy load)
+  async function loadApisOnDemand() {
+    if (apiDataLoaded) return;
+    const [lime, bods, darwin, tfwm] = await Promise.all([
+      fetchLimeData(),
+      fetchBodsData(),
+      fetchDarwinData(),
+      fetchTfwmData()
+    ]);
+    state.apiData = { lime, bods, darwin, tfwm };
+    apiDataLoaded = true;
+    render();
+  }
+
+  // Event listeners - Tab switching
+  document.querySelectorAll(".tab").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const route = e.target.closest(".tab").dataset.route;
+      document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+      e.target.closest(".tab").classList.add("active");
+      state.activeRoute = route;
+      
+      // Hide all content sections
+      document.getElementById("route-content").style.display = "none";
+      document.getElementById("map-content").style.display = "none";
+      document.getElementById("planner-content").style.display = "none";
+      
+      // Show selected content
+      if (route === "map") {
+        document.getElementById("map-content").style.display = "block";
+        loadAccommodations().then(() => {
+          setTimeout(() => initMap(), 100);
+          renderAccommodations();
+        });
+      } else if (route === "planner") {
+        document.getElementById("planner-content").style.display = "block";
+      } else {
+        document.getElementById("route-content").style.display = "block";
+        loadApisOnDemand();
+      }
+      
+      render();
+    });
+  });
+
+  document.getElementById("safeMode").addEventListener("click", (e) => {
+    state.safeMode = !state.safeMode;
+    e.target.closest(".toggle").classList.toggle("active");
+    render();
+  });
+
+  document.getElementById("groupSize").addEventListener("change", (e) => {
+    state.groupSize = Math.max(1, parseInt(e.target.value));
+    render();
+  });
+
+  ["busPass", "unirider", "railcard"].forEach(id => {
+    document.getElementById(id).addEventListener("change", (e) => {
+      state.wallet[id] = e.target.checked;
+      render();
+    });
+  });
+
+  // Initialize (removed API calls - now lazy loaded on tab click)
+  
+  // Map tab handling (integrated with main tab listener above)
+
+  // Autocomplete function
+  function setupAutocomplete(inputId, suggestionsId) {
+    const input = document.getElementById(inputId);
+    const suggestionsDiv = document.getElementById(suggestionsId);
+    
+    input.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      
+      if (query.length === 0) {
+        suggestionsDiv.style.display = 'none';
+        return;
+      }
+      
+      // Filter locations by name or postcode
+      const matches = LOCATIONS.filter(loc => 
+        loc.name.toLowerCase().includes(query) ||
+        loc.postcodes.some(pc => pc.toLowerCase().startsWith(query.toUpperCase()))
+      );
+      
+      if (matches.length === 0) {
+        suggestionsDiv.style.display = 'none';
+        return;
+      }
+      
+      suggestionsDiv.innerHTML = matches.map(loc => `
+        <div style="padding: 8px 12px; border-bottom: 1px solid #E8EBF0; cursor: pointer; font-size: 12px; color: #003366;" 
+             onclick="document.getElementById('${inputId}').value = '${loc.name}'; document.getElementById('${suggestionsId}').style.display = 'none';">
+          <strong>${loc.name}</strong><br>
+          <span style="font-size: 11px; color: #999999;">${loc.area} · ${loc.postcodes.join(', ')}</span>
+        </div>
+      `).join('');
+      suggestionsDiv.style.display = 'block';
+    });
+    
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+      if (e.target !== input) {
+        suggestionsDiv.style.display = 'none';
+      }
+    });
+  }
+  
+  setupAutocomplete('from-location', 'from-suggestions');
+  setupAutocomplete('to-location', 'to-suggestions');
+
+  // Route planner search
+  document.getElementById('search-route').addEventListener('click', () => {
+    const fromText = document.getElementById('from-location').value.trim();
+    const toText = document.getElementById('to-location').value.trim();
+    const time = document.getElementById('journey-time').value;
+    const day = parseInt(document.getElementById('journey-day').value);
+    
+    if (!fromText || !toText) {
+      alert('Please enter both starting location and destination');
+      return;
+    }
+    
+    // Find matching locations by name or postcode
+    const fromLoc = LOCATIONS.find(loc => 
+      loc.name.toLowerCase() === fromText.toLowerCase() ||
+      loc.postcodes.some(pc => pc.toUpperCase() === fromText.toUpperCase())
+    );
+    const toLoc = LOCATIONS.find(loc => 
+      loc.name.toLowerCase() === toText.toLowerCase() ||
+      loc.postcodes.some(pc => pc.toUpperCase() === toText.toUpperCase())
+    );
+    
+    if (!fromLoc || !toLoc) {
+      alert('Location not found. Please select from autocomplete suggestions.');
+      return;
+    }
+    
+    // Get available services for this time/day
+    const availableServices = getAvailableRoutes(time, day);
+    
+    // Calculate realistic distance and times
+    const distanceKm = calculateDistance(fromLoc.lat, fromLoc.lng, toLoc.lat, toLoc.lng);
+    
+    // Get routes or generate with realistic times
+    const key = `${fromLoc.id}|${toLoc.id}`;
+    let allRoutes = ROUTES_DB[key] || [];
+    
+    // If no pre-defined routes, generate them with realistic times
+    if (allRoutes.length === 0) {
+      allRoutes = [
+        { 
+          route: 'Bus', 
+          cost: 2.4, 
+          time: calculateJourneyTime(distanceKm, 'bus'), 
+          reliability: 88, 
+          notes: 'Via local bus network', 
+          service: 'bus' 
+        },
+        { 
+          route: 'Lime Bike', 
+          cost: Math.round(distanceKm * 0.5), 
+          time: calculateJourneyTime(distanceKm, 'lime'), 
+          reliability: 85, 
+          notes: 'Cycle if available', 
+          service: 'lime' 
+        },
+        { 
+          route: 'Uber', 
+          cost: Math.round(8 + (distanceKm * 1.5)), 
+          time: calculateJourneyTime(distanceKm, 'uber'), 
+          reliability: 92, 
+          notes: 'Door-to-door service', 
+          service: 'uber' 
+        }
+      ];
+    } else {
+      // Update times for predefined routes based on actual distance
+      allRoutes = allRoutes.map(r => ({
+        ...r,
+        time: calculateJourneyTime(distanceKm, r.service || 'bus')
+      }));
+    }
+    
+    // Filter routes based on service availability at this time/day
+    const availableRoutes = allRoutes.filter(r => {
+      const service = r.service || 'bus';
+      return isServiceAvailable(service, parseInt(time.split(':')[0]), day);
+    });
+    
+    // Mark Lime as unavailable if outside service area, but keep it for display
+    const routesWithAvailability = availableRoutes.map(r => ({
+      ...r,
+      limeUnavailable: r.service === 'lime' && !isLimeAvailable(toLoc)
+    }));
+    
+    // Determine day name
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = dayNames[day];
+    
+    displayRouteResults(fromLoc, toLoc, routesWithAvailability, time, dayName, availableServices, distanceKm);
+  });
+  
+  function displayRouteResults(from, to, routes, time, dayName, availableServices, distanceKm) {
+    const resultsDiv = document.getElementById('planner-results');
+    
+    // Show warning if limited services
+    let warningHtml = '';
+    if (routes.length === 0) {
+      warningHtml = `
+        <div style="margin-bottom: 12px; padding: 12px; background: #FEE2E2; border-radius: 8px; border-left: 3px solid #EF4444; color: #991B1B;">
+          <strong>⚠️ No services available</strong><br>
+          <span style="font-size: 12px;">At ${time} on ${dayName}, only taxis/Uber are available in this area.</span>
+        </div>
+      `;
+    } else if (routes.length < 3) {
+      warningHtml = `
+        <div style="margin-bottom: 12px; padding: 12px; background: #FEF3C7; border-radius: 8px; border-left: 3px solid #F59E0B; color: #92400E;">
+          <strong>⚠️ Limited services</strong><br>
+          <span style="font-size: 12px;">At ${time} on ${dayName}, only ${availableServices.join(', ')} are running.</span>
+        </div>
+      `;
+    }
+    
+    resultsDiv.innerHTML = `
+      <div style="margin-bottom: 12px; padding: 12px; background: rgba(147,51,234,0.08); border-radius: 8px; border-left: 3px solid #9333EA;">
+        <div style="font-size: 13px; color: #003366; font-weight: 600;">
+          ${from.name} → ${to.name}
+        </div>
+        <div style="font-size: 11px; color: #999999; margin-top: 4px;">
+          ${dayName} at ${time} · ${distanceKm.toFixed(1)}km · ${from.area} to ${to.area}
+        </div>
+      </div>
+      
+      ${warningHtml}
+      
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        ${routes.length > 0 ? routes.map((r, idx) => {
+          const isUnavailable = r.limeUnavailable;
+          
+          // Calculate departure time from the selected time
+          const [userHour, userMin] = time.split(':').map(Number);
+          const departure = getNextDeparture(r.service || 'bus', userHour, userMin);
+          const arrival = departure ? getArrivalTime(departure.hour, departure.min, r.time, departure.variance) : null;
+          
+          return `
+            <div class="option-card" style="${isUnavailable ? 'opacity: 0.5; background: #F3F4F6;' : ''}">
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 600; color: #003366;">
+                  ${idx + 1}. ${r.route}
+                  ${isUnavailable ? '<span style="font-size: 10px; color: #999999; margin-left: 8px;"> (not available in this area)</span>' : ''}
+                </div>
+                <div style="font-size: 11px; color: #999999; margin-top: 4px;">${r.notes}</div>
+                
+                ${arrival ? `
+                  <div style="font-size: 12px; color: #003366; margin-top: 8px; font-weight: 500;">
+                    🚌 Departs: <strong>${formatTime(departure.hour, departure.min)}</strong> 
+                    │ Arrives: <strong>${arrival.display}</strong>
+                    ${arrival.isRange ? '<span style="font-size: 10px; color: #999999;"> (estimated)</span>' : ''}
+                  </div>
+                ` : ''}
+              </div>
+              
+              <div style="text-align: right; min-width: 80px;">
+                <div style="font-size: 14px; font-weight: 700; color: #003366;">£${typeof r.cost === 'number' ? r.cost.toFixed(2) : r.cost}</div>
+                <div style="font-size: 10px; color: #999999; margin-top: 2px;">
+                  ${r.time} min · ${r.reliability}% reliable
+                </div>
+                ${isUnavailable ? '<div style="font-size: 9px; color: #999999; margin-top: 4px;">Would cost: £' + r.cost.toFixed(2) + '</div>' : ''}
+              </div>
+            </div>
+          `;
+        }).join('') : `
+          <div style="padding: 20px; text-align: center; color: #999999; background: #F8F9FA; border-radius: 8px;">
+            Only Uber and Taxi available at this time
+          </div>
+        `}
+      </div>
+      
+      <div style="margin-top: 12px; padding: 12px; background: #F0F9FF; border-radius: 8px; border-left: 3px solid #0284C7; font-size: 11px; color: #0C4A6E;">
+        <strong>💡 Available services:</strong> ${availableServices.join(' · ')}
+        ${routes.some(r => r.limeUnavailable) ? '<br><strong>ℹ️ Lime</strong> only operates in Coventry (CV1-6) & University of Warwick campus' : ''}
+      </div>
+    `;
+  }
+
+  // Filter event listeners
+  document.getElementById('budget-filter').addEventListener('change', filterAccommodations);
+  document.getElementById('commute-filter').addEventListener('change', filterAccommodations);
+</script>
+</body>
+</html>
